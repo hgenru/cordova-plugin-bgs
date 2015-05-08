@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="com.jettech.bgs"
+    version="0.0.1">
+    <name>Background Geolocation Service</name>
+    <description>Simple Background Geolocation Service for android with  local notification</description>
+    <license>MIT</license>
+    <keywords>notification,background geolocation</keywords>
+
+    <engines>
+        <engine name="cordova" version=">=3.0.0" />
+    </engines>
+
+    <dependency id="de.appplant.cordova.plugin.local-notification" />
+
+    <js-module src="www/bgs.js" name="BackgroundGeolocationService">
+        <clobbers target="window.bgs" />
+    </js-module>
+
+    <platform name="android">
+        <source-file
+            src="src/android/BackgroundGeolocationService.java"
+            target-dir="src/com/jettech/bgs/" />
+        <source-file
+            src="src/android/BackgroundGeolocationServicePlugin.java"
+            target-dir="src/com/jettech/bgs/" />
+        <source-file
+            src="src/android/BootReceiver.java"
+            target-dir="src/com/jettech/bgs/" />
+        <source-file
+            src="src/android/libs/android-async-http-1.4.6.jar"
+            target-dir="libs" framework="true" />
+
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="bgs">
+                <param
+                    name="android-package"
+                    value="com.jettech.bgs.BackgroundGeolocationServicePlugin"/>
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <activity
+                android:name="com.jettech.bgs.NotificationHandlerActivity"
+                android:exported="true" />
+            <service
+                android:name="com.jettech.bgs.BackgroundGeolocationService"
+                android:enabled="true"
+                android:exported="true"
+                android:process=":remote" />
+            <receiver
+                android:name="com.jettech.bgs.BootReceiver"
+                android:enabled="true"
+                android:exported="true"
+                android:permission="android.permission.RECEIVE_BOOT_COMPLETED" >
+                <intent-filter>
+                    <action android:name="android.intent.action.BOOT_COMPLETED" />
+                </intent-filter>
+            </receiver>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+            <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+            <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+            <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.WAKE_LOCK" />
+        </config-file>
+     </platform>
+</plugin>
