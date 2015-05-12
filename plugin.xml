@@ -4,7 +4,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     id="com.jettech.bgs"
     version="0.0.1">
-    <name>Background Geolocation Service</name>
+    <name>BackgroundGeolocationService</name>
     <description>Simple Background Geolocation Service for android with  local notification</description>
     <license>MIT</license>
     <keywords>notification,background geolocation</keywords>
