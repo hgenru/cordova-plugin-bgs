@@ -27,6 +27,9 @@ module.exports = {
         );
     },
     configure: function (config, successCallback, errorCallback) {
+        if (config.defaults) {
+            config.defaults = JSON.stringify(config.defaults);
+        }
         cordova.exec(
             successCallback,
             errorCallback,
