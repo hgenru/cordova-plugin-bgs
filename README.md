@@ -73,7 +73,9 @@ stop BackgroundGeolocation service
 #### `restart()`:
 stop BackgroundGeolocation service
 
-#### `configure(config)`: configure BackgroundGeolocation service
+#### `configure(config)`:
+
+configure BackgroundGeolocation service
 > Note: you must restart bgs after configure
 
     config = {
