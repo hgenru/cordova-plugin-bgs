@@ -1,7 +1,7 @@
 package com.jettech.bgs;
 
 import org.json.*;
-import java.util.Date;
+import java.util.*;
 import org.apache.http.Header;
 
 import android.util.Log;
@@ -27,6 +27,7 @@ public class BackgroundGeolocationService extends Service implements LocationLis
     static final String PREFS_NAME = "BackgroundGeolocationService";
 
     String serverUrl;
+    String userDefaults;
     Long throttle;
 
     Long lastLocationTime = 0L;
@@ -39,7 +40,8 @@ public class BackgroundGeolocationService extends Service implements LocationLis
     public void onCreate() {
         Log.i(TAG, "onCreate");
         preferences = this.getSharedPreferences(PREFS_NAME, 0 | Context.MODE_MULTI_PROCESS);
-        serverUrl = preferences.getString("serverUrl", "null");
+        userDefaults = preferences.getString("defaults", "");
+        serverUrl = preferences.getString("serverUrl", "insert_your_url");
         throttle = preferences.getLong("throttle", 0);
         httpClient = new AsyncHttpClient();
 
@@ -99,19 +101,58 @@ public class BackgroundGeolocationService extends Service implements LocationLis
                 Log.d(TAG, "httpClient.get.onSuccess");
                 // 204 will be ignored
                 if (statusCode == 204) {
+                    Log.w(TAG, "Ignoring response with 204 http code");
                     return;
                 }
                 try {
+                    JSONObject defaults;
+                    if (userDefaults.length() > 0) {
+                        defaults = new JSONObject(userDefaults);
+                    } else {
+                        defaults = new JSONObject();
+                    }
+                    defaults.put("sound", defaults.has("sound") ? defaults.optString("sound") : "res://platform_default");
+                    defaults.put("icon", defaults.has("icon") ? defaults.optString("icon") : "res://icon");
+                    defaults.put("smallIcon", defaults.has("smallIcon") ? defaults.optString("smallIcon") : "res://ic_popup_reminder");
+                    defaults.put("ongoing", defaults.has("ongoing") ? defaults.optBoolean("ongoing") : false);
+                    defaults.put("autoClear", defaults.has("autoClear") ? defaults.optBoolean("autoClear") : true);
+                    defaults.put("led", defaults.has("led") ? defaults.optString("led") : "FFFFFF");
                     String stringResponse = new String(response, "UTF-8");
                     if (stringResponse.length() == 0) {
                         Log.w(TAG, "Ignoring empty response");
                         return;
                     }
-                    JSONObject jsonResponse = new JSONObject(stringResponse);
-                    if (jsonResponse.has("text")) {
-                        showNotification(jsonResponse);
-                    } else {
-                        Log.d(TAG, "Ignoring wrong JSONObject");
+                    Object jsonResponse = new JSONTokener(stringResponse).nextValue();
+                    JSONArray notifyArray = null;
+                    if (jsonResponse instanceof JSONObject) {
+                        notifyArray = new JSONArray();
+                        notifyArray.put(jsonResponse);
+                    } else if (jsonResponse instanceof JSONArray) {
+                        notifyArray = new JSONArray(jsonResponse);
+                    }
+                    for(int n = 0; n < notifyArray.length(); n++) {
+                        JSONObject currentJson = notifyArray.getJSONObject(n);
+                        if (currentJson == null) {
+                            Log.w(TAG, "Ignoring invalid entry (index: " + n + ")");
+                        }
+                        List<String> defaultsKeys = new ArrayList<String>();
+                        Iterator<?> defaultsKeysIterator = defaults.keys();
+                        while (defaultsKeysIterator.hasNext()) {
+                            String key = (String)defaultsKeysIterator.next();
+                            defaultsKeys.add(key);
+                        }
+                        String[] defaultsKeysArray = defaultsKeys.toArray(new String[defaultsKeys.size()]);
+                        JSONObject notifyJson = new JSONObject(defaults, defaultsKeysArray);
+                        Iterator<?> currentJsonKeysIterator = currentJson.keys();
+                        while (currentJsonKeysIterator.hasNext()) {
+                            String key = (String)currentJsonKeysIterator.next();
+                            notifyJson.put(key, currentJson.get(key));
+                        }
+                        if (notifyJson.has("text")) {
+                            showNotification(notifyJson);
+                        } else {
+                            Log.w(TAG, "Ignoring JSONObject without `text` property (index: " + n + ")");
+                        }
                     }
                 } catch (java.io.UnsupportedEncodingException ex) {
                     ex.printStackTrace();

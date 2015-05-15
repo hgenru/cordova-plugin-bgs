@@ -79,6 +79,11 @@ public class BackgroundGeolocationServicePlugin extends CordovaPlugin {
                             Double minDistance = config.getDouble("minDistance");
                             preferencesEditor.putFloat("minDistance", minDistance.floatValue());
                         }
+                        // minDistance
+                        if (config.has("defaults")) {
+                            String defaults = config.getString("defaults");
+                            preferencesEditor.putString("defaults", defaults);
+                        }
 
                         preferencesEditor.commit();
                         callbackContext.success();
