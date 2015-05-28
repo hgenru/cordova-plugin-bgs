@@ -11,6 +11,8 @@ Simple cordova plugin for capture geodata in background mode, send to server and
         // Android LocationListener params, see [this](https://developer.android.com/reference/android/location/LocationManager.html#requestLocationUpdates(java.lang.String, long, float, android.location.LocationListener, android.os.Looper)) article
         minDistance: 10,
         minTime: 24 * 60 * 60 * 1000,
+        minAccuracity: 150,
+        distanceFilter: 100,
         throttle: 1 * 60 * 1000,  // Throttle http requests, ms
         // Default Notification property
         defaults: {smallIcon: 'res://icon'}

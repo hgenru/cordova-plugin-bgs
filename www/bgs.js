@@ -27,6 +27,12 @@ module.exports = {
         );
     },
     configure: function (config, successCallback, errorCallback) {
+        var toFloat = ['minAccuracity', 'minDistance', 'minAccuracity', 'distanceFilter'];
+        var i;
+        for (i = 0; i < toFloat.length; i++) {
+            var key = toFloat[i];
+            config[key] = parseFloat(config[key]);
+        }
         if (config.defaults) {
             config.defaults = JSON.stringify(config.defaults);
         }

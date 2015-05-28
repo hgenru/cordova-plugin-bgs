@@ -30,6 +30,9 @@
             src="src/android/BootReceiver.java"
             target-dir="src/com/jettech/bgs/" />
         <source-file
+            src="src/android/FileLog.java"
+            target-dir="src/com/jettech/bgs/" />
+        <source-file
             src="src/android/libs/android-async-http-1.4.6.jar"
             target-dir="libs" framework="true" />
 

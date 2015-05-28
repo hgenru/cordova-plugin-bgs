@@ -3,22 +3,27 @@ package com.jettech.bgs;
 import org.json.*;
 import java.util.*;
 import org.apache.http.Header;
+import java.util.Calendar;
 
 import android.util.Log;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.app.Service;
+import android.os.Environment;
 import android.content.Intent;
 import android.content.Context;
+import android.app.Service;
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.text.format.DateFormat;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 
 import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationListener;
 
 import com.loopj.android.http.*;
+import com.jettech.bgs.FileLog;
 
 
 public class BackgroundGeolocationService extends Service implements LocationListener {
@@ -28,9 +33,11 @@ public class BackgroundGeolocationService extends Service implements LocationLis
 
     String serverUrl;
     String userDefaults;
+    Float minAccuracity;
+    Float distanceFilter;
     Long throttle;
 
-    Long lastLocationTime = 0L;
+    Location lastLocation = null;
 
     SharedPreferences preferences;
     LocationManager locationManager;
@@ -38,23 +45,44 @@ public class BackgroundGeolocationService extends Service implements LocationLis
 
     @Override
     public void onCreate() {
-        Log.i(TAG, "onCreate");
+        FileLog.i(TAG, "onCreate");
+        boolean DEBUGGABLE = (this.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        if (DEBUGGABLE) {
+            String appName = this.getPackageName() + "-background-geolocation.log";
+            String path = Environment.getExternalStorageDirectory().getPath() + "/" + appName;
+            FileLog.open(path, Log.VERBOSE, 1000000);
+        }
         preferences = this.getSharedPreferences(PREFS_NAME, 0 | Context.MODE_MULTI_PROCESS);
         userDefaults = preferences.getString("defaults", "");
         serverUrl = preferences.getString("serverUrl", "insert_your_url");
         throttle = preferences.getLong("throttle", 0);
+        minAccuracity = preferences.getFloat("minAccuracity", 0);
+        distanceFilter = preferences.getFloat("distanceFilter", 0);
         httpClient = new AsyncHttpClient();
+        httpClient.setMaxRetriesAndTimeout(3, 2000);
+        httpClient.setConnectTimeout(10000);
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Long minTime = preferences.getLong("minTime", 0);
         Float minDistance = preferences.getFloat("minDistance", 20);
-        String[] providers = new String[] {
-            LocationManager.NETWORK_PROVIDER,
-            LocationManager.PASSIVE_PROVIDER
-        };
-        for (String provider : providers) {
-            locationManager.requestLocationUpdates(provider, minTime, minDistance, this);
-        }
+        FileLog.i(TAG, "onCreate, throttle:" + throttle + " minAccuracity:" + minAccuracity + " minDistance:" + minDistance);
+        // Android before JellyBean may be ignore minTime and minDistance
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, minTime, minDistance, this);
+        locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 1000, 10, this);
+
+        // Инициализация рестартера сервиса
+        Calendar calendar = Calendar.getInstance();
+        Intent intent = new Intent(this, BackgroundGeolocationService.class);
+        PendingIntent pintent = PendingIntent.getService(this, 0, intent, 0);
+        AlarmManager alarm = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+        // Рестартовать сервис раз в 4 часа, так мы себя оберегаем от наедания
+        // и рестартимся если что-то стало не так
+        alarm.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.getTimeInMillis(),
+            4 * 60 * 60 * 1000,
+            pintent
+        );
     }
 
     public void locationHandler(Location location) {
@@ -66,16 +94,31 @@ public class BackgroundGeolocationService extends Service implements LocationLis
         final double latitude = location.getLatitude();
         final float accuracy = location.getAccuracy();
 
-        Log.i(TAG, String.format(
+        FileLog.i(TAG, String.format(
             "%s src:%s; long:%s; lat:%s; acc:%f",
             locationTimeFormatted.toString(), provider,
             latitude, longitude, accuracy)
         );
-        if ((locationTime - lastLocationTime) < throttle) {
-            Log.d(TAG,
-                "locationHandler, reject http request by throttle; lastLocationTime: "
-                + lastLocationTime + " throttle: " + throttle);
+
+        if (minAccuracity > 0 && minAccuracity < accuracy) {
+            FileLog.d(TAG, "locationHandler, reject http request by minAccuracity");
             return;
+        }
+
+        if (lastLocation != null) {
+            Long lastLocationTime = lastLocation.getTime();
+            if ((locationTime - lastLocationTime) < throttle) {
+                FileLog.d(TAG,
+                    "locationHandler, reject http request by throttle; lastLocationTime: "
+                    + lastLocationTime + " throttle: " + throttle);
+                return;
+            }
+            float distance = lastLocation.distanceTo(location);
+            FileLog.d(TAG, "locationHandler, distance to lastLocation:" + distance);
+            if (distance < distanceFilter) {
+                FileLog.d(TAG, "locationHandler, reject http request by distanceFilter");
+                return;
+            }
         }
 
         RequestParams params = new RequestParams();
@@ -88,20 +131,20 @@ public class BackgroundGeolocationService extends Service implements LocationLis
             serverUrl, params.toString()
         );
 
-        lastLocationTime = locationTime;
+        lastLocation = location;
 
         httpClient.get(serverUrl, params, new AsyncHttpResponseHandler() {
             @Override
             public void onStart() {
-                Log.d(TAG, "httpClient.get.onStart, " + requestMsg);
+                FileLog.d(TAG, "httpClient.get.onStart, " + requestMsg);
             }
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] response) {
-                Log.d(TAG, "httpClient.get.onSuccess");
+                FileLog.d(TAG, "httpClient.get.onSuccess");
                 // 204 will be ignored
                 if (statusCode == 204) {
-                    Log.w(TAG, "Ignoring response with 204 http code");
+                    FileLog.w(TAG, "Ignoring response with 204 http code");
                     return;
                 }
                 try {
@@ -119,7 +162,7 @@ public class BackgroundGeolocationService extends Service implements LocationLis
                     defaults.put("led", defaults.has("led") ? defaults.optString("led") : "FFFFFF");
                     String stringResponse = new String(response, "UTF-8");
                     if (stringResponse.length() == 0) {
-                        Log.w(TAG, "Ignoring empty response");
+                        FileLog.w(TAG, "Ignoring empty response");
                         return;
                     }
                     Object jsonResponse = new JSONTokener(stringResponse).nextValue();
@@ -133,7 +176,7 @@ public class BackgroundGeolocationService extends Service implements LocationLis
                     for(int n = 0; n < notifyArray.length(); n++) {
                         JSONObject currentJson = notifyArray.getJSONObject(n);
                         if (currentJson == null) {
-                            Log.w(TAG, "Ignoring invalid entry (index: " + n + ")");
+                            FileLog.w(TAG, "Ignoring invalid entry (index: " + n + ")");
                         }
                         List<String> defaultsKeys = new ArrayList<String>();
                         Iterator<?> defaultsKeysIterator = defaults.keys();
@@ -151,7 +194,7 @@ public class BackgroundGeolocationService extends Service implements LocationLis
                         if (notifyJson.has("text")) {
                             showNotification(notifyJson);
                         } else {
-                            Log.w(TAG, "Ignoring JSONObject without `text` property (index: " + n + ")");
+                            FileLog.w(TAG, "Ignoring JSONObject without `text` property (index: " + n + ")");
                         }
                     }
                 } catch (java.io.UnsupportedEncodingException ex) {
@@ -163,18 +206,18 @@ public class BackgroundGeolocationService extends Service implements LocationLis
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] error, Throwable ex) {
-                Log.d(TAG, "httpClient.get.onFailure");
+                FileLog.d(TAG, "httpClient.get.onFailure");
             }
 
             @Override
             public void onRetry(int retryNo) {
-                Log.w(TAG, "httpClient.get.onRetry, http request url: " + requestMsg);
+                FileLog.w(TAG, "httpClient.get.onRetry, http request url: " + requestMsg);
             }
         });
     }
 
     public void showNotification(JSONObject options) {
-        Log.i(TAG, "showNotification, " + options.toString());
+        FileLog.i(TAG, "showNotification, " + options.toString());
         // Sorry about this long java name shit
         de.appplant.cordova.plugin.notification.Builder builder = new de.appplant.cordova.plugin.notification.Builder(this, options);
         de.appplant.cordova.plugin.notification.Notification notification = builder
@@ -187,13 +230,15 @@ public class BackgroundGeolocationService extends Service implements LocationLis
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "onStartCommand");
+        FileLog.d(TAG, "onStartCommand");
         return START_STICKY;
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        locationHandler(location);
+        if (location != null) {
+            locationHandler(location);
+        }
     }
 
     @Override
@@ -203,23 +248,24 @@ public class BackgroundGeolocationService extends Service implements LocationLis
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "onDestroy");
+        FileLog.d(TAG, "onDestroy");
+        FileLog.close();
         super.onDestroy();
     }
 
     @Override
     public void onProviderDisabled(String provider) {
-        Log.v(TAG, "onProviderDisabled, disabled: " + provider);
+        FileLog.v(TAG, "onProviderDisabled, disabled: " + provider);
     }
 
     @Override
     public void onProviderEnabled(String provider) {
-        Log.v(TAG, "onProviderEnabled, enabled: " + provider);
+        FileLog.v(TAG, "onProviderEnabled, enabled: " + provider);
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-        Log.v(TAG, String.format(
+        FileLog.v(TAG, String.format(
             "onStatusChanged, provider: %s status: %i extars: %s",
             provider, status, extras)
         );
