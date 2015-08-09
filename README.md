@@ -27,7 +27,7 @@ Simple cordova plugin for capture geodata in background mode, send to server and
 
 # Example server request
 
-    https://example.com?my_param1=123&my_param2=321&latitude=33&longitude=34&accuracy=100
+    POST https://example.com params: my_param1=123&my_param2=321&latitude=33&longitude=34&accuracy=100
 
 
 # Example server response
