@@ -173,7 +173,6 @@ public class BackgroundGeolocationService extends Service implements LocationLis
                     } else if (jsonResponse instanceof JSONArray) {
                         notifyArray = new JSONArray(jsonResponse);
                     } else {
-                        // empty array
                         FileLog.w(TAG, "Ignoring invalid response");
                         notifyArray = new JSONArray();
                     }
