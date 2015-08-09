@@ -133,15 +133,15 @@ public class BackgroundGeolocationService extends Service implements LocationLis
 
         lastLocation = location;
 
-        httpClient.get(serverUrl, params, new AsyncHttpResponseHandler() {
+        httpClient.post(serverUrl, params, new AsyncHttpResponseHandler() {
             @Override
             public void onStart() {
-                FileLog.d(TAG, "httpClient.get.onStart, " + requestMsg);
+                FileLog.d(TAG, "httpClient.post.onStart, " + requestMsg);
             }
 
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] response) {
-                FileLog.d(TAG, "httpClient.get.onSuccess");
+                FileLog.d(TAG, "httpClient.post.onSuccess");
                 // 204 will be ignored
                 if (statusCode == 204) {
                     FileLog.w(TAG, "Ignoring response with 204 http code");
@@ -172,6 +172,10 @@ public class BackgroundGeolocationService extends Service implements LocationLis
                         notifyArray.put(jsonResponse);
                     } else if (jsonResponse instanceof JSONArray) {
                         notifyArray = new JSONArray(jsonResponse);
+                    } else {
+                        // empty array
+                        FileLog.w(TAG, "Ignoring invalid response");
+                        notifyArray = new JSONArray();
                     }
                     for(int n = 0; n < notifyArray.length(); n++) {
                         JSONObject currentJson = notifyArray.getJSONObject(n);
@@ -206,12 +210,12 @@ public class BackgroundGeolocationService extends Service implements LocationLis
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] error, Throwable ex) {
-                FileLog.d(TAG, "httpClient.get.onFailure");
+                FileLog.d(TAG, "httpClient.post.onFailure");
             }
 
             @Override
             public void onRetry(int retryNo) {
-                FileLog.w(TAG, "httpClient.get.onRetry, http request url: " + requestMsg);
+                FileLog.w(TAG, "httpClient.post.onRetry, http request url: " + requestMsg);
             }
         });
     }
