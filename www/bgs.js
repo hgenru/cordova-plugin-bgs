@@ -1,4 +1,5 @@
 /* global cordova, module */
+function flatten(e,t){function r(e,c){Object.keys(e).forEach(function(o){var a=e[o],s=t.safe&&Array.isArray(a),y=Object.prototype.toString.call(a),b=isBuffer(a),j="[object Object]"===y||"[object Array]"===y,l=c?c+f+o:o;return t.maxDepth||(n=i+1),!s&&!b&&j&&Object.keys(a).length&&n>i?(++i,r(a,l)):void(u[l]=a)})}t=t||{};var f=t.delimiter||".",n=t.maxDepth,i=1,u={};return r(e),u}function isBuffer(e){return"undefined"==typeof Buffer?!1:Buffer.isBuffer(e)}
 
 
 module.exports = {
@@ -35,6 +36,9 @@ module.exports = {
         }
         if (config.defaults) {
             config.defaults = JSON.stringify(config.defaults);
+        }
+        if (config.defaultRequestParams) {
+            config.defaultRequestParams = JSON.stringify(flatten(config.defaultRequestParams));
         }
         cordova.exec(
             successCallback,

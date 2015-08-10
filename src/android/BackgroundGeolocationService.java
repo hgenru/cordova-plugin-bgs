@@ -22,6 +22,8 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationListener;
 
+import android.provider.Settings;
+
 import com.loopj.android.http.*;
 import com.jettech.bgs.FileLog;
 
@@ -36,6 +38,8 @@ public class BackgroundGeolocationService extends Service implements LocationLis
     Float minAccuracity;
     Float distanceFilter;
     Long throttle;
+    String deviceId;
+    String defaultRequestParams;
 
     Location lastLocation = null;
 
@@ -62,6 +66,8 @@ public class BackgroundGeolocationService extends Service implements LocationLis
         httpClient.setMaxRetriesAndTimeout(3, 2000);
         httpClient.setConnectTimeout(10000);
 
+        defaultRequestParams = preferences.getString("defaultRequestParams", "{}");
+
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Long minTime = preferences.getLong("minTime", 0);
         Float minDistance = preferences.getFloat("minDistance", 20);
@@ -83,6 +89,8 @@ public class BackgroundGeolocationService extends Service implements LocationLis
             4 * 60 * 60 * 1000,
             pintent
         );
+
+        deviceId = Settings.Secure.getString(this.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
     }
 
     public void locationHandler(Location location) {
@@ -122,10 +130,21 @@ public class BackgroundGeolocationService extends Service implements LocationLis
         }
 
         RequestParams params = new RequestParams();
+        try {
+            JSONObject defaultsParams = new JSONObject(defaultRequestParams);
+            for(Iterator<String> iter = defaultsParams.keys();iter.hasNext();) {
+                String key = iter.next();
+                String value = value = defaultsParams.getString(key);
+                params.put(key, value);
+            }
+        } catch (JSONException ex) {
+            ex.printStackTrace();
+        }
         params.put("provider", provider);
         params.put("longitude", longitude);
         params.put("latitude", latitude);
         params.put("accuracy", accuracy);
+        params.put("deviceId", deviceId);
         final String requestMsg = String.format(
             "http request url: %s, with params: %s",
             serverUrl, params.toString()

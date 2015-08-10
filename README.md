@@ -16,6 +16,7 @@ Simple cordova plugin for capture geodata in background mode, send to server and
         throttle: 1 * 60 * 1000,  // Throttle http requests, ms
         // Default Notification property
         defaults: {smallIcon: 'res://icon'}
+        defaultRequestParams: {access_key: 'ADSsad2129casjas8'} // default post params
     };
     window.bgs.configure(config, function() {
         window.bgs.start(
@@ -27,7 +28,8 @@ Simple cordova plugin for capture geodata in background mode, send to server and
 
 # Example server request
 
-    POST https://example.com params: my_param1=123&my_param2=321&latitude=33&longitude=34&accuracy=100
+    POST https://example.com?my_param1=123&my_param2=321
+    BODY latitude=33&longitude=34&accuracy=100&access_key=ADSsad2129casjas8
 
 
 # Example server response

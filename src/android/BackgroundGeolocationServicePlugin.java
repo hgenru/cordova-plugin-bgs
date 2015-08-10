@@ -94,6 +94,11 @@ public class BackgroundGeolocationServicePlugin extends CordovaPlugin {
                             String defaults = config.getString("defaults");
                             preferencesEditor.putString("defaults", defaults);
                         }
+                        // defaultRequestParams
+                        if (config.has("defaultRequestParams")) {
+                            String defaultRequestParams = config.getString("defaultRequestParams");
+                            preferencesEditor.putString("defaultRequestParams", defaultRequestParams);
+                        }
 
                         preferencesEditor.commit();
                         callbackContext.success();
