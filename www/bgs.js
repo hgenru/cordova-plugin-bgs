@@ -35,10 +35,10 @@ module.exports = {
             config[key] = parseFloat(config[key]);
         }
         if (config.defaults) {
-            config.defaults = JSON.stringify(config.defaults);
+            config.defaults = config.defaults;
         }
         if (config.defaultRequestParams) {
-            config.defaultRequestParams = JSON.stringify(flatten(config.defaultRequestParams));
+            config.defaultRequestParams = flatten(config.defaultRequestParams);
         }
         cordova.exec(
             successCallback,
