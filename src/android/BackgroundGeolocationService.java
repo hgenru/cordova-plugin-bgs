@@ -272,6 +272,9 @@ public class BackgroundGeolocationService extends Service implements LocationLis
     public void onDestroy() {
         FileLog.d(TAG, "onDestroy");
         FileLog.close();
+        
+        locationManager.removeUpdates(this);
+        
         super.onDestroy();
     }
 
