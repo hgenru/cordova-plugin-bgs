@@ -2,7 +2,6 @@ package com.jettech.bgs;
 
 import org.json.*;
 import java.util.*;
-import org.apache.http.Header;
 import java.util.Calendar;
 
 import android.util.Log;
@@ -24,6 +23,7 @@ import android.location.LocationListener;
 
 import android.provider.Settings;
 
+import cz.msebera.android.httpclient.Header;
 import com.loopj.android.http.*;
 import com.jettech.bgs.FileLog;
 
@@ -272,6 +272,9 @@ public class BackgroundGeolocationService extends Service implements LocationLis
     public void onDestroy() {
         FileLog.d(TAG, "onDestroy");
         FileLog.close();
+
+        locationManager.removeUpdates(this);
+
         super.onDestroy();
     }
 
