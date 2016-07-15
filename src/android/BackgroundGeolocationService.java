@@ -23,7 +23,7 @@ import android.location.LocationListener;
 
 import android.provider.Settings;
 
-import cz.msebera.android.httpclient.Header;
+import org.apache.http.Header;
 import com.loopj.android.http.*;
 import com.jettech.bgs.FileLog;
 

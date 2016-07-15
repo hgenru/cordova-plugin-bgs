@@ -36,7 +36,7 @@
             src="src/android/libs/android-async-http-1.4.9.jar"
             target-dir="libs" framework="true" />
         <source-file
-            src="src/android/libs/httpclient-4.4.1.2.jar"
+            src="src/android/libs/org.apache.http.legacy.jar"
             target-dir="libs" framework="true" />
 
         <config-file target="res/xml/config.xml" parent="/*">
