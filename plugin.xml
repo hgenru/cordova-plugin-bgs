@@ -21,6 +21,7 @@
 
     <platform name="android">
         <framework src="com.loopj.android:android-async-http:1.4.7"/>
+        <framework src="org.jbundle.util.osgi.wrapped:org.jbundle.util.osgi.wrapped.org.apache.http.client:4.1.2"/>
 
         <source-file
             src="src/android/BackgroundGeolocationService.java"
