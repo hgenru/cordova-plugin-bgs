@@ -20,6 +20,8 @@
     </js-module>
 
     <platform name="android">
+        <framework src="com.loopj.android"/>
+
         <source-file
             src="src/android/BackgroundGeolocationService.java"
             target-dir="src/com/jettech/bgs/" />
@@ -32,9 +34,6 @@
         <source-file
             src="src/android/FileLog.java"
             target-dir="src/com/jettech/bgs/" />
-        <source-file
-            src="src/android/libs/android-async-http-1.4.9.jar"
-            target-dir="libs" framework="true" />
         <source-file
             src="src/android/libs/org.apache.http.legacy.jar"
             target-dir="libs" framework="true" />
