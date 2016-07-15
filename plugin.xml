@@ -20,7 +20,7 @@
     </js-module>
 
     <platform name="android">
-        <framework src="com.loopj.android"/>
+        <framework src="com.loopj.android:+"/>
 
         <source-file
             src="src/android/BackgroundGeolocationService.java"
