@@ -35,9 +35,6 @@
         <source-file
             src="src/android/FileLog.java"
             target-dir="src/com/jettech/bgs/" />
-        <source-file
-            src="src/android/libs/org.apache.http.legacy.jar"
-            target-dir="libs" framework="true" />
 
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="bgs">
